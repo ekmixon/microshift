@@ -26,12 +26,12 @@ class TestApplication(testlib.MachineCase):
 
         # verify expected host name
         hostname = m.execute("cat /etc/hostname").strip()
-        b.wait_in_text(".pf-c-alert__title", "Running on " + hostname)
+        b.wait_in_text(".pf-c-alert__title", f"Running on {hostname}")
 
         # change current hostname
-        self.write_file("/etc/hostname", "new-" + hostname)
+        self.write_file("/etc/hostname", f"new-{hostname}")
         # verify new hostname name
-        b.wait_in_text(".pf-c-alert__title", "Running on new-" + hostname)
+        b.wait_in_text(".pf-c-alert__title", f"Running on new-{hostname}")
 
         # change language to German
         b.switch_to_top()

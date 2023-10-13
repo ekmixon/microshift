@@ -13,6 +13,7 @@ Args:
 File : cloner.py
 """
 
+
 import argparse
 import os
 import sys
@@ -27,7 +28,7 @@ JQL_FILTER_ISSUE = 'key in ({})'
 JQL_FILTER_USER = 'assignee in ({})'
 JQL_ORDER_BY = 'order by key asc'
 JIRA_SERVER = 'https://issues.redhat.com'
-JIRA_URL_PREFIX = JIRA_SERVER+'/browse/'
+JIRA_URL_PREFIX = f'{JIRA_SERVER}/browse/'
 
 
 def is_original_issue(issue):
@@ -62,9 +63,11 @@ def get_fix_versions(issue):
     """Returns a list of fix versions for the given issue."""
     l = []
     if hasattr(issue.fields, 'fixVersions') and issue.fields.fixVersions is not None:
-        for fver in issue.fields.fixVersions:
-            if hasattr(fver, 'name'):
-                l.append(fver.name)
+        l.extend(
+            fver.name
+            for fver in issue.fields.fixVersions
+            if hasattr(fver, 'name')
+        )
     return sorted(l)[::-1]
 
 
@@ -72,9 +75,11 @@ def get_target_versions(issue):
     """Returns a list of target versions for the given issue."""
     l = []
     if hasattr(issue.fields, 'customfield_12319940') and issue.fields.customfield_12319940 is not None:
-        for tver in issue.fields.customfield_12319940:
-            if hasattr(tver, 'name'):
-                l.append(tver.name)
+        l.extend(
+            tver.name
+            for tver in issue.fields.customfield_12319940
+            if hasattr(tver, 'name')
+        )
     return l
 
 
@@ -102,18 +107,12 @@ def get_sprint(issue):
 
 def is_issue_a_cve(issue):
     """Returns True if the given issue has a label that starts with "CVE-", False otherwise."""
-    for label in issue.fields.labels:
-        if label.startswith('CVE-'):
-            return True
-    return False
+    return any(label.startswith('CVE-') for label in issue.fields.labels)
 
 
 def has_fix_versions_label(issue):
     """Returns True if the given issue has a label "needs-fix-version", False otherwise."""
-    for label in issue.fields.labels:
-        if label == 'needs-fix-version':
-            return True
-    return False
+    return any(label == 'needs-fix-version' for label in issue.fields.labels)
 
 
 def set_fix_version(issue, version):
@@ -133,11 +132,11 @@ def set_needs_fix_version_label(issue):
 
 def remove_needs_fix_version_label(issue):
     """Removes the label "needs-fix-version" from the issue's labels."""
-    labels = []
-    for label in issue.fields.labels:
-        if label == 'needs-fix-version':
-            continue
-        labels.append({'name': label})
+    labels = [
+        {'name': label}
+        for label in issue.fields.labels
+        if label != 'needs-fix-version'
+    ]
     issue.update(fields={
         'labels': labels
     })
@@ -180,18 +179,17 @@ def set_sprint(issue, sprint, connection):
 
 def clone_issue(issue, target, connection):
     """Clones the specified issue."""
-    data_dict = {}
-    data_dict['priority'] = {'id': issue.fields.priority.id}
-    data_dict['labels'] = issue.fields.labels + ['backport']
-    data_dict['issuetype'] = {'id': issue.fields.issuetype.id}
-    data_dict['project'] = {'id': issue.fields.project.id}
-    data_dict['summary'] = issue.fields.summary
-    data_dict['description'] = issue.fields.description
-    data_dict['components'] = [{'id': x.id} for x in issue.fields.components]
-    data_dict['versions'] = [{'name': x.name} for x in issue.fields.versions]
-    # Target version
-    data_dict['customfield_12319940'] = [{'name': target}]
-
+    data_dict = {
+        'priority': {'id': issue.fields.priority.id},
+        'labels': issue.fields.labels + ['backport'],
+        'issuetype': {'id': issue.fields.issuetype.id},
+        'project': {'id': issue.fields.project.id},
+        'summary': issue.fields.summary,
+        'description': issue.fields.description,
+        'components': [{'id': x.id} for x in issue.fields.components],
+        'versions': [{'name': x.name} for x in issue.fields.versions],
+        'customfield_12319940': [{'name': target}],
+    }
     new_issue = connection.create_issue(data_dict)
     set_assignee(new_issue, issue.fields.assignee.name)
     set_fix_versions(new_issue, [x.name for x in issue.fields.fixVersions])
@@ -246,11 +244,19 @@ def scan_original_issue(issue, connection):
             actions.append(Action(clone.key, "Target versions has more than one field. Fix manually.", None))
         elif len(target_versions) == 0:
             actions.append(Action(clone.key, "Target versions is empty. Fix manually", None))
-        else:
-            if clone_target_versions[0] in fix_versions_missing:
-                fix_versions_missing.remove(clone_target_versions[0])
-    for version in fix_versions_missing:
-        actions.append(Action(issue.key, f"Clone for Target version {version}", clone_issue, issue=issue, target=version, connection=connection))
+        elif clone_target_versions[0] in fix_versions_missing:
+            fix_versions_missing.remove(clone_target_versions[0])
+    actions.extend(
+        Action(
+            issue.key,
+            f"Clone for Target version {version}",
+            clone_issue,
+            issue=issue,
+            target=version,
+            connection=connection,
+        )
+        for version in fix_versions_missing
+    )
     return actions
 
 
@@ -268,9 +274,8 @@ def scan_cloned_issue(issue, connection):
         actions.append(Action(issue.key, "Target versions has more than one value. Fix manually.", None))
     elif len(target_version) == 0:
         actions.append(Action(issue.key, "Target versions is empty. Fix manually.", None))
-    else:
-        if target_version[0] not in parent_fix_versions:
-            actions.append(Action(issue.key, "Target version not in parent Fix versions. Fix manually.", None))
+    elif target_version[0] not in parent_fix_versions:
+        actions.append(Action(issue.key, "Target version not in parent Fix versions. Fix manually.", None))
 
     if get_sprint(issue) is None:
         parent_sprint = get_sprint(parent)
@@ -370,13 +375,11 @@ if __name__ == '__main__':
     print()
 
     actions_list = list(filter(lambda x: x.action is not None, actions_list))
-    if len(actions_list) == 0:
+    if not actions_list:
         print("No automatic actions to perform.")
         sys.exit(0)
 
-    answer = ''
-    if args.auto_accept:
-        answer = 'y'
+    answer = 'y' if args.auto_accept else ''
     while answer not in ['y', 'n']:
         answer = input(f'Perform {len(actions_list)} non manual actions? [Y/N]').lower()
     if answer == 'n':

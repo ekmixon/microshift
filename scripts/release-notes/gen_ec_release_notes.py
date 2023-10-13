@@ -220,8 +220,7 @@ def find_new_releases(url_base, release_type):
         if version_prefix in OLD_VERSIONS:
             continue
         try:
-            nr = check_for_new_releases(url_base, release_type, version)
-            if nr:
+            if nr := check_for_new_releases(url_base, release_type, version):
                 new_releases.append(nr)
         except Exception as err:  # pylint: disable=broad-except
             print(f"WARNING: could not process {release_type} {version}: {err}")

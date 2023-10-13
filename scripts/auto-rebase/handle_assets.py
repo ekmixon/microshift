@@ -32,9 +32,7 @@ def merge_paths(pathl, pathr):
     - If `pathr` is absolute (starts with `/`), then discard the leading `/` and return rest `pathr`.
     - If `pathr` is relative, then return `pathl/pathr`.
     """
-    if pathr.startswith("/"):
-        return pathr[1:]
-    return os.path.join(pathl, pathr)
+    return pathr[1:] if pathr.startswith("/") else os.path.join(pathl, pathr)
 
 
 def run_command(args=None):

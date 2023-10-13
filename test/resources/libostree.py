@@ -141,11 +141,7 @@ def get_current_boot_id() -> str:
 def does_backup_exist(deploy_id: str, boot_id: str = "") -> bool:
     prefix = get_deployment_backup_prefix_path(deploy_id)
 
-    if boot_id != "":
-        path = f"{prefix}_{boot_id}"
-    else:
-        path = f"{prefix}"
-
+    path = f"{prefix}_{boot_id}" if boot_id != "" else f"{prefix}"
     return path_exists(path)
 
 
