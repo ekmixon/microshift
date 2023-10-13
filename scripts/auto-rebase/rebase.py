@@ -157,9 +157,13 @@ def try_get_rebase_branch_ref_from_remote(remote, branch_name):
     otherwise return None if the branch does not exist.
     """
     remote.fetch()
-    matching_remote_refs = [ref for ref in remote.refs if BOT_REMOTE_NAME + "/" + branch_name == ref.name]
+    matching_remote_refs = [
+        ref
+        for ref in remote.refs
+        if f"{BOT_REMOTE_NAME}/{branch_name}" == ref.name
+    ]
 
-    if len(matching_remote_refs) == 0:
+    if not matching_remote_refs:
         logging.info(f"Branch '{branch_name}' does not exist on remote")
         return None
 
@@ -426,7 +430,7 @@ def cleanup_branches(gh_repo):
                     logging.warning(f"Failed to delete '{ref.ref}' because: {err}")
                     _extra_msgs.append(f"Failed to delete '{ref.ref}' because: {err}")
 
-    if len(deleted_branches) != 0:
+    if deleted_branches:
         _extra_msgs.append("Deleted following branches: " + ", ".join(deleted_branches))
 
 

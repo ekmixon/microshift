@@ -20,8 +20,7 @@ def get_journal_cursor() -> str:
     # -- cursor: s=d1b6ab3ee650471cacc2a5f694b500a6;i=1772e;b=efc55827851c451db78f496a81a9de88;m=29024a3bb1;t=605bddb046dcb;x=f3b4472fb6bbb542
     lines = stdout.splitlines()
     cursor_line = lines[-1]
-    cursor = cursor_line.partition(': ')[-1]
-    return cursor
+    return cursor_line.partition(': ')[-1]
 
 
 def get_log_output_with_pattern(cursor: str, pattern: str) -> tuple[str, int]:

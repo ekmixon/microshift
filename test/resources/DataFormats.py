@@ -70,28 +70,16 @@ def _merge(dest, addition):
 
 def yaml_merge(base, addition):
     """Return combination of both YAML data structures, additively."""
-    if not base:
-        combined = {}
-    else:
-        combined = yaml.safe_load(base)
-    if not addition:
-        parsed_addition = {}
-    else:
-        parsed_addition = yaml.safe_load(addition)
+    combined = {} if not base else yaml.safe_load(base)
+    parsed_addition = {} if not addition else yaml.safe_load(addition)
     _merge(combined, parsed_addition)
     return yaml.dump(combined)
 
 
 def yaml_replace(base, replacement):
     """Return base YAML data structure with replacement values"""
-    if not base:
-        combined = {}
-    else:
-        combined = yaml.safe_load(base)
-    if not replacement:
-        parsed_replacement = {}
-    else:
-        parsed_replacement = yaml.safe_load(replacement)
+    combined = {} if not base else yaml.safe_load(base)
+    parsed_replacement = {} if not replacement else yaml.safe_load(replacement)
     combined.update(parsed_replacement)
     return yaml.dump(combined)
 

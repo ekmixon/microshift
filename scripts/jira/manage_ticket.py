@@ -113,11 +113,14 @@ def custom_field_manager(server):
 def get_active_sprint(server, project_id):
     """Return the active sprint for the USHIFT project."""
     valid_sprints = server.sprints(SCRUM_BOARD, state='active')
-    for s in valid_sprints:
-        if not s.name.lower().startswith(project_id.lower()):
-            continue
-        return s
-    return None
+    return next(
+        (
+            s
+            for s in valid_sprints
+            if s.name.lower().startswith(project_id.lower())
+        ),
+        None,
+    )
 
 
 def get_project_id_from_ticket_id(ticket_id):
@@ -144,7 +147,7 @@ def guess_ticket_id():
     if len(parts) < 2:
         print(f'Unable to determine ticket ID from "{branch_name}"')
         return None
-    return parts[0] + '-' + parts[1]
+    return f'{parts[0]}-{parts[1]}'
 
 
 def command_start(args):
@@ -197,11 +200,7 @@ def command_start(args):
 
 def is_pr_link(url):
     """Returns boolean indicating whether the link points to a pull request."""
-    if not url.startswith('https://github.com/'):
-        return False
-    if '/pull/' not in url:
-        return False
-    return True
+    return False if not url.startswith('https://github.com/') else '/pull/' in url
 
 
 def parse_pr_link(url):
@@ -259,10 +258,7 @@ def command_close(args):
             print('  Transition: none')
             continue
 
-        if NO_QE_LABEL in ticket.fields.labels:
-            next_state = 'Closed'
-        else:
-            next_state = 'Review'
+        next_state = 'Closed' if NO_QE_LABEL in ticket.fields.labels else 'Review'
         print(f'  Transition: {next_state}')
         if args.dry_run:
             print('f  DRY RUN')

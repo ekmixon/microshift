@@ -89,9 +89,7 @@ def get_fcontext_list() -> List[str]:
 def get_denial_audit_log() -> List[str]:
     ausearch_filter_cmd = "ausearch --input-logs -m avc | grep microshift"
     stdout, rc = remote_sudo_rc(ausearch_filter_cmd)
-    if rc == 0:
-        return stdout.splitlines()
-    return []
+    return stdout.splitlines() if rc == 0 else []
 
 
 # In order to check access, we use the `runcon` command to initiate shell commands.
@@ -156,11 +154,9 @@ def run_default_access_check() -> List[str]:
 def run_default_access_binary_transition_check(script_file_path: str) -> List[str]:
     chcon_cmd = "chcon -t kubelet_exec_t"
     chmod_cmd = "chmod +x"
-    error_list = []
     stdout, rc = remote_sudo_rc(f"{chcon_cmd} {script_file_path} && {chmod_cmd} {script_file_path} 2>&1")
     if rc != 0:
-        error_list.append(f"failed to chcon of test file {script_file_path} to kubelet_exec_t")
-        return error_list
+        return [f"failed to chcon of test file {script_file_path} to kubelet_exec_t"]
     return run_binary_domain_transition_check(script_file_path, ACCESS_CHECK_MAP)
 
 
@@ -189,9 +185,7 @@ def get_all_traversal_transition_contexts(source: str) -> List[str]:
 
 # Check if we should ignore this specific domain check
 def ignore_domain_check(source: str, key: str, domain_permissions: List[str]) -> bool:
-    # Ignore self refernce to filesystem associatation
-    found = re.search(f"{source} {source}:filesystem", key)
-    if found:
+    if found := re.search(f"{source} {source}:filesystem", key):
         if len(domain_permissions) == 1 and "associate" in domain_permissions:
             print(f"match on {source} key {key}")
             return True
@@ -300,7 +294,4 @@ def context_do_not_match(context_string: str, expected_context_string: str) -> b
         return True
 
     # If context do match but it's not a system_u and an unconfined_u user, that's not expected and should be looked at.
-    if context_parts[0] != "system_u" and context_parts[0] != "unconfined_u":
-        return True
-
-    return False
+    return context_parts[0] not in ["system_u", "unconfined_u"]

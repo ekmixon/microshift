@@ -75,8 +75,7 @@ def flattened_status():
     status = json.loads(result.stdout)
     for result_set in status:
         for state in result_set["body"]:
-            for job in result_set["body"][state]:
-                yield job
+            yield from result_set["body"][state]
 
 
 def main(build_ids):

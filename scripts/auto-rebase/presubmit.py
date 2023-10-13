@@ -73,20 +73,22 @@ def _check_for_redundant_instructions(path, instructions):
     if 'dirs' in instructions:
         # Use a list comprehension instead of a generator expression
         # to ensure all of the sub-entries are checked.
-        return any([_check_for_redundant_instructions(next_path, d)
-                    for d in instructions['dirs']])
+        return any(
+            _check_for_redundant_instructions(next_path, d)
+            for d in instructions['dirs']
+        )
     # Evaluate the files at this level
     have_error = False
     filenames = {}
     for entry in instructions.get('files', []):
         if entry['file'] in filenames:
             existing_path, existing_entry = filenames[entry['file']]
-            print("ERROR: found multiple instructions for {}".format(entry['file']))
-            print("       {}:".format(' -> '.join(existing_path)))
-            print("       {}".format(existing_entry))
+            print(f"ERROR: found multiple instructions for {entry['file']}")
+            print(f"       {' -> '.join(existing_path)}:")
+            print(f"       {existing_entry}")
             print("       AND")
-            print("       {}:".format(' -> '.join(next_path)))
-            print("       {}".format(entry))
+            print(f"       {' -> '.join(next_path)}:")
+            print(f"       {entry}")
             print("")
             have_error = True
         filenames[entry['file']] = (next_path, entry)
@@ -95,10 +97,10 @@ def _check_for_redundant_instructions(path, instructions):
 
 def check_for_redundant_instructions(recipe):
     """Look for assets that appear in the recipe file multiple times."""
-    return any([
+    return any(
         _check_for_redundant_instructions([], asset)
         for asset in recipe['assets']
-    ])
+    )
 
 
 def main():
